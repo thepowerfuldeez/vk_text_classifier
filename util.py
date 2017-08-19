@@ -15,6 +15,7 @@ from sklearn.preprocessing import normalize
 from keras.models import load_model
 
 import os
+import tqdm
 from config import VK_TOKEN, FB_TOKEN
 
 
@@ -93,7 +94,7 @@ class ParseClass:
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"corpora_from_fb_users/{user}.txt"
+        path = f"assets/corpora_from_fb_users/{user}.txt"
         if not os.path.exists(path):
             access_token = FB_TOKEN
 
@@ -102,7 +103,6 @@ class ParseClass:
             posts = graph.get_connections(profile['id'], 'posts')
 
             with open(path, 'w') as f:
-                texts = []
                 while True:
                     try:
                         # Perform some action on each post in the collection we receive from
@@ -110,7 +110,7 @@ class ParseClass:
                         for post in posts['data']:
                             msg = post.get('message', '')
                             if msg:
-                                _ = f.write(f"{processed_text}\n")
+                                _ = f.write(f"{msg}\n")
                         # Attempt to make a request to the next page of data, if it exists.
                         posts = requests.get(posts['paging']['next']).json()
                     except KeyError:
@@ -125,7 +125,7 @@ class ParseClass:
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"corpora_from_fb_users/{user}.txt"
+        path = f"assets/corpora_from_fb_users/{user}.txt"
         if not os.path.exists(path):
             with open(path, 'w') as f:
                 for post in t[user]:
@@ -134,7 +134,8 @@ class ParseClass:
         with open(path) as f:
             return list(f)
 
-    def getallwall(self, kwargs, n=None):
+    @staticmethod
+    def getallwall(kwargs, n=None):
         """Get all texts from wall generator"""
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         tools = vk_api.VkTools(vk_session)
@@ -163,10 +164,10 @@ class ParseClass:
 
     def process_owner_vk(self, owner_id, owner_type='public', n_wall=None):
         if owner_type == 'public':
-            path = f"corpora_from_vk_publics/{owner_id}.txt"
+            path = f"assets/corpora_from_vk_publics/{owner_id}.txt"
             owner_id = -owner_id
         elif owner_type == 'user':
-            path = f"corpora_from_vk_users/{owner_id}.txt"
+            path = f"assets/corpora_from_vk_users/{owner_id}.txt"
         if not os.path.exists(path):
             wall = self.getallwall({"owner_id": owner_id}, n_wall)
             with open(path, "w") as f:

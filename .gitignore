@@ -98,8 +98,4 @@ ENV/
 .idea
 assets
 config.py
-making_corpora.ipynb
-model.ipynb
-nn.ipynb
-result.ipynb
 !/assets/.keep
