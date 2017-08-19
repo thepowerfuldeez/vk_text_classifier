@@ -7,6 +7,7 @@ from nltk.tokenize import RegexpTokenizer
 import vk_api
 import facebook
 import requests
+from bs4 import BeautifulSoup
 
 import pickle
 import json
@@ -84,10 +85,50 @@ class CorporaClass:
 
 
 class ParseClass:
-    """Class for getting data from facebook and vk"""
+    """Class for getting data from sites, facebook, vk"""
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def get_all_links(url):
+        base_url = "/".join(url.split("/")[:3])
+
+        def check_valid(urls):
+            """Only full links containing base url"""
+            base_url_name = base_url.split("/")[-1].split(".")[0]
+            valid = list(filter(lambda x: base_url_name in x, urls))
+            wo_base_url = list(filter(lambda x: base_url_name not in x and "http" not in x, urls))
+            ext = []
+            for link in wo_base_url:
+                if link.startswith("/"):
+                    ext.append(base_url + link)
+                else:
+                    ext.append(f"{base_url}/{link}")
+            return valid + ext
+
+        def recursive_url(url):
+            """Recursively finds the urls"""
+            try:
+                page = requests.get(url).text
+            except:
+                page = requests.get(base_url + url).text
+            soup = BeautifulSoup(page, "lxml")
+            return set([item.get('href', '') for item in soup.find_all('a')])
+
+        def get_links(url):
+            page = requests.get(url).text
+            soup = BeautifulSoup(page, "lxml")
+            links = set([item.get('href', '') for item in soup.find_all('a')])
+            new_links = links
+            for link in links.copy():
+                try:
+                    new_links.update(recursive_url(link))
+                except:
+                    pass
+            return check_valid(new_links)
+
+        return check_valid(get_links(url))
 
     @staticmethod
     def get_posts_fb(user='BillGates'):
@@ -164,10 +205,10 @@ class ParseClass:
 
     def process_owner_vk(self, owner_id, owner_type='public', n_wall=None):
         if owner_type == 'public':
-            path = f"assets/corpora_from_vk_publics/{owner_id}.txt"
+            path = f"assets/corpora_cached_vk_publics/{owner_id}.txt"
             owner_id = -owner_id
-        elif owner_type == 'user':
-            path = f"assets/corpora_from_vk_users/{owner_id}.txt"
+        else:
+            path = f"assets/corpora_cached_vk_users/{owner_id}.txt"
         if not os.path.exists(path):
             wall = self.getallwall({"owner_id": owner_id}, n_wall)
             with open(path, "w") as f:
@@ -203,6 +244,7 @@ class ResultClass:
             texts.extend(ParseClass.get_posts_fb_temp(user_fb))
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(texts)
+        corpora_class.process_corpora()
         verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora).toarray()),
                                    axis=0).reshape(1, -1))[0]
         return list(zip(self.categories, verdict))
