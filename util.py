@@ -20,6 +20,7 @@ from config import VK_TOKEN, FB_TOKEN
 
 class CorporaClass:
     """Class for setting up corpora"""
+
     def __init__(self):
         self.corpora = []
         self.vocab = set()
@@ -56,8 +57,18 @@ class CorporaClass:
                     processed = ""
                 if len(processed):
                     doc.append(processed)
-            stoplist = pd.Series(list(itertools.chain(*(a.split() for a in doc)))).value_counts().index[:5]
-            print(f"Excluded: {list(stoplist)}")
+            self.corpora.append(doc)
+        except Exception:
+            pass
+
+    def process_corpora(self):
+        all_words = []
+        for doc in tqdm.tqdm(self.corpora):
+            all_words.extend(list(itertools.chain(*(a.split() for a in doc))))
+        vc = pd.Series(all_words).value_counts()
+        stoplist = vc.index[:20].tolist() + vc.index[vc.values == 1].tolist()
+        new_corpora = []
+        for doc in self.corpora:
             accepted_lines = []
             for line in doc:
                 accepted_words = []
@@ -66,9 +77,8 @@ class CorporaClass:
                         accepted_words.append(word)
                         self.vocab.add(word)
                 accepted_lines.append(" ".join(accepted_words))
-            self.corpora.append(accepted_lines)
-        except Exception:
-            pass
+            new_corpora.append(accepted_lines)
+        self.corpora = new_corpora
         self.vocab = self.vocab - {""}
 
 
