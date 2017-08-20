@@ -49,19 +49,16 @@ class CorporaClass:
         return result
 
     def add_to_corpora(self, file_object):
-        try:
-            doc = []
-            for line in file_object:
-                try:
-                    processed = self.full_process(line)
-                except Exception as e:
-                    print(e)
-                    processed = ""
-                if len(processed):
-                    doc.append(processed)
-            self.corpora.append(doc)
-        except Exception:
-            pass
+        doc = []
+        for line in file_object:
+            try:
+                processed = self.full_process(line)
+            except Exception as e:
+                print(e)
+                processed = ""
+            if len(processed):
+                doc.append(processed)
+        self.corpora.append(doc)
 
     def process_corpora(self):
         all_words = []
@@ -135,7 +132,7 @@ class ParseClass:
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"assets/corpora_from_fb_users/{user}.txt"
+        path = f"assets/corpora_cached_fb_users/{user}.txt"
         if not os.path.exists(path):
             access_token = FB_TOKEN
 
@@ -162,11 +159,12 @@ class ParseClass:
             return list(f)
 
     @staticmethod
-    def get_posts_fb_temp(t, user='BillGates'):
+    def get_posts_fb_temp(user='BillGates'):
+        t = json.load(open("assets/fb_dump.json"))
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"assets/corpora_from_fb_users/{user}.txt"
+        path = f"assets/corpora_cached_fb_users/{user}.txt"
         if not os.path.exists(path):
             with open(path, 'w') as f:
                 for post in t[user]:
@@ -234,17 +232,18 @@ class ResultClass:
 
     def get_result(self, user_vk, user_fb):
         texts = []
+        parse_class = ParseClass()
         if user_vk:
-            texts.extend(ParseClass.process_owner_vk(user_vk, owner_type='user'))
-            public_ids = ParseClass.get_publics(user_vk, 6)
+            texts.extend(parse_class.process_owner_vk(user_vk, owner_type='user'))
+            public_ids = parse_class.get_publics(user_vk, 6)
             for public_id in public_ids:
-                texts.extend(ParseClass.process_owner_vk(public_id, owner_type='public', n_wall=2000))
+                texts.extend(parse_class.process_owner_vk(public_id, owner_type='public', n_wall=2000))
         if user_fb:
-            # texts.extend(ParseClass.get_posts_fb(user_fb))
-            texts.extend(ParseClass.get_posts_fb_temp(user_fb))
+            # texts.extend(parse_class.get_posts_fb(user_fb))
+            texts.extend(parse_class.get_posts_fb_temp(user_fb))
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(texts)
         corpora_class.process_corpora()
-        verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora).toarray()),
+        verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora[0]).toarray()),
                                    axis=0).reshape(1, -1))[0]
         return list(zip(self.categories, verdict))
