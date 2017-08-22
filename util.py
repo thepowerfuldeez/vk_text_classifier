@@ -45,18 +45,17 @@ class CorporaClass:
                 if len(morphed) == len(re.findall(ru_pattern, morphed)):
                     processed.append(morphed)
 
-        result = " ".join(processed)
-        return result
+        return processed
 
     def add_to_corpora(self, file_object):
         doc = []
         for line in file_object:
             try:
-                processed = self.full_process(line)
+                processed = line
             except Exception as e:
                 print(e)
                 processed = ""
-            if len(processed):
+            if len(processed.split()) > 2:
                 doc.append(processed)
         self.corpora.append(doc)
 
