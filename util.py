@@ -26,6 +26,7 @@ class CorporaClass:
     def __init__(self):
         self.corpora = []
         self.vocab = set()
+        self.labels = []
 
     tokenizer = RegexpTokenizer('\w+')
     morph = pymorphy2.MorphAnalyzer()
@@ -47,7 +48,7 @@ class CorporaClass:
 
         return processed
 
-    def add_to_corpora(self, file_object):
+    def add_to_corpora(self, file_object, label):
         doc = []
         for line in file_object:
             try:
@@ -57,7 +58,9 @@ class CorporaClass:
                 processed = ""
             if len(processed.split()) > 2:
                 doc.append(processed)
-        self.corpora.append(doc)
+        if len(doc) > 2:
+            self.corpora.append(doc)
+            self.labels.append(label)
 
     def process_corpora(self):
         all_words = []
@@ -228,20 +231,27 @@ class ResultClass:
         self.categories = json.load(open("assets/categories.json"))
         self.classifier = load_model("assets/vk_texts_classifier.h5")
         self.vectorizer = pickle.load(open("assets/vectorizer.p", "rb"))
+        self.texts = []
+        self.parse_class = ParseClass()
+
+    def parse_vk(self, user_vk):
+        self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
+        public_ids = self.parse_class.get_publics(user_vk, 6)
+        for public_id in public_ids:
+            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=2000))
+
+    def parse_fb(self, user_fb):
+        # texts.extend(parse_class.get_posts_fb(user_fb))
+        self.texts.extend(self.parse_class.get_posts_fb_temp(user_fb))
 
     def get_result(self, user_vk, user_fb):
-        texts = []
-        parse_class = ParseClass()
         if user_vk:
-            texts.extend(parse_class.process_owner_vk(user_vk, owner_type='user'))
-            public_ids = parse_class.get_publics(user_vk, 6)
-            for public_id in public_ids:
-                texts.extend(parse_class.process_owner_vk(public_id, owner_type='public', n_wall=2000))
+            self.parse_vk(user_vk)
         if user_fb:
-            # texts.extend(parse_class.get_posts_fb(user_fb))
-            texts.extend(parse_class.get_posts_fb_temp(user_fb))
+            self.parse_fb(user_fb)
+
         corpora_class = CorporaClass()
-        corpora_class.add_to_corpora(texts)
+        corpora_class.add_to_corpora(self.texts)
         corpora_class.process_corpora()
         verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora[0]).toarray()),
                                    axis=0).reshape(1, -1))[0]
