@@ -16,6 +16,7 @@ from sklearn.preprocessing import normalize
 from keras.models import load_model
 
 import os
+import time
 import tqdm
 from config import VK_TOKEN, FB_TOKEN
 
@@ -233,10 +234,15 @@ class ResultClass:
         self.vectorizer = pickle.load(open("assets/vectorizer.p", "rb"))
         self.texts = []
         self.parse_class = ParseClass()
+        self.publics_dict = json.load(open("assets/publics_dict.json"))
 
-    def parse_vk(self, user_vk):
+    def parse_vk(self, user_vk, parse=True):
         self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
-        public_ids = self.parse_class.get_publics(user_vk, 6)
+        if parse is True:
+            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 6))
+            self.publics_dict[user_vk] = public_ids
+        else:
+            public_ids = self.publics_dict.get(user_vk, [])
         for public_id in public_ids:
             self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=2000))
 
@@ -251,8 +257,8 @@ class ResultClass:
             self.parse_fb(user_fb)
 
         corpora_class = CorporaClass()
-        corpora_class.add_to_corpora(self.texts)
-        corpora_class.process_corpora()
+        corpora_class.add_to_corpora(self.texts, '')
+        # corpora_class.process_corpora()
         verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora[0]).toarray()),
                                    axis=0).reshape(1, -1))[0]
         return list(zip(self.categories, verdict))
