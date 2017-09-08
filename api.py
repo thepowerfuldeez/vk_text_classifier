@@ -28,6 +28,7 @@ def get_result():
     name = data.get('name', "")
     user_vk = data.get('user_vk')
     user_fb = data.get('user_fb')
+    verbose = data.get("verbose", False)
     verdict = result.get_result(user_vk, user_fb)
     norm_names = dict(zip([a[0] for a in verdict], labels))
 
@@ -41,7 +42,10 @@ def get_result():
     results = []
     for col, value in verdict:
         if value > delim:
-            results.append({"name": norm_names[col], "value": float(value)})
+            if verbose:
+                results.append({"name": norm_names[col], "value": float(value)})
+            else:
+                results.append(norm_names[col])
     result.texts = []
     return app.response_class(
         response=json.dumps({"name": name, "results": results}),
