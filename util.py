@@ -246,7 +246,7 @@ class ResultClass:
         else:
             public_ids = self.publics_dict.get(user_vk, [])
         for i, public_id in enumerate(public_ids, 1):
-            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=600))
+            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
             print(f"{i}-th public have been parsed.")
 
     def parse_fb(self, user_fb):
@@ -263,8 +263,10 @@ class ResultClass:
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')
-        # corpora_class.process_corpora()
-        verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora[0]).toarray()),
+        print("Added to corpora")
+        transformed = self.vectorizer.transform(corpora_class.corpora[0]).toarray()
+        print("Transformed corpora.")
+        verdict = normalize(np.sum(self.classifier.predict(transformed),
                                    axis=0).reshape(1, -1))[0]
         json.dump(self.publics_dict, open("assets/publics_dict.json", "w"))
         return list(zip(self.categories, verdict))
