@@ -1,0 +1,12 @@
+facebook-sdk
+flask
+keras
+nltk
+numpy
+pandas
+pymorphy2
+requests
+tqdm
+vk_api
+beautifulsoup4
+scikit-learn
