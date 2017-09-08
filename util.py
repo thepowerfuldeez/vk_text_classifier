@@ -189,6 +189,7 @@ class ParseClass:
                         break
                     yield post['text']
             except:
+                print("Going slow parse")
                 wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs, limit=n)
                 for i, post in enumerate(wall_posts, 1):
                     if i > n:
@@ -200,6 +201,7 @@ class ParseClass:
                 for post in wall_posts:
                     yield post['text']
             except:
+                print("Going slow parse")
                 wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs)
                 for post in wall_posts:
                     yield post['text']
@@ -243,8 +245,9 @@ class ResultClass:
             self.publics_dict[user_vk] = public_ids
         else:
             public_ids = self.publics_dict.get(user_vk, [])
-        for public_id in public_ids:
-            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
+        for i, public_id in enumerate(public_ids, 1):
+            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=600))
+            print(f"{i}-th public have been parsed.")
 
     def parse_fb(self, user_fb):
         # texts.extend(parse_class.get_posts_fb(user_fb))
@@ -253,8 +256,10 @@ class ResultClass:
     def get_result(self, user_vk, user_fb):
         if user_vk:
             self.parse_vk(user_vk)
+            print("VK Parse completed.")
         if user_fb:
             self.parse_fb(user_fb)
+            print("FB Parse completed.")
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')

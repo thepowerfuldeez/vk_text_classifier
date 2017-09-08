@@ -30,6 +30,7 @@ def get_result():
     user_fb = data.get('user_fb')
     verbose = data.get("verbose", False)
     verdict = result.get_result(user_vk, user_fb)
+    print("Got verdict.")
     norm_names = dict(zip([a[0] for a in verdict], labels))
 
     a = np.array([b for a, b in verdict])
