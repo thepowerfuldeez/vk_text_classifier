@@ -239,7 +239,7 @@ class ResultClass:
     def parse_vk(self, user_vk, parse=True):
         self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
         if parse is True:
-            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 10))
+            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 5))
             self.publics_dict[user_vk] = public_ids
         else:
             public_ids = self.publics_dict.get(user_vk, [])
