@@ -1,5 +1,6 @@
 import flask
 import json
+import numpy as np
 from util import ResultClass
 
 app = flask.Flask(__name__)
@@ -29,9 +30,18 @@ def get_result():
     user_fb = data.get('user_fb')
     verdict = result.get_result(user_vk, user_fb)
     norm_names = dict(zip([a[0] for a in verdict], labels))
+
+    a = np.array([b for a, b in verdict])
+    m = a.mean()
+    if m > 0.3:
+        delim = 1.5 * m
+    else:
+        delim = np.percentile(a, 85)
+
     results = []
     for col, value in verdict:
-        results.append({"name": norm_names[col], "value": float(value)})
+        if value > delim:
+            results.append({"name": norm_names[col], "value": float(value)})
     result.texts = []
     return app.response_class(
         response=json.dumps({"name": name, "results": results}),

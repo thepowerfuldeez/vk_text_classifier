@@ -183,24 +183,24 @@ class ParseClass:
         tools = vk_api.VkTools(vk_session)
         if n:
             try:
-                wall_posts = tools.get_all_iter("wall.get", 75, values=kwargs, limit=n)
+                wall_posts = tools.get_all_iter("wall.get", 100, values=kwargs, limit=n)
                 for i, post in enumerate(wall_posts, 1):
                     if i > n:
                         break
                     yield post['text']
             except:
-                wall_posts = tools.get_all_iter("wall.get", 15, values=kwargs, limit=n)
+                wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs, limit=n)
                 for i, post in enumerate(wall_posts, 1):
                     if i > n:
                         break
                     yield post['text']
         else:
             try:
-                wall_posts = tools.get_all_iter("wall.get", 75, values=kwargs)
+                wall_posts = tools.get_all_iter("wall.get", 100, values=kwargs)
                 for post in wall_posts:
                     yield post['text']
             except:
-                wall_posts = tools.get_all_iter("wall.get", 15, values=kwargs)
+                wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs)
                 for post in wall_posts:
                     yield post['text']
 
@@ -223,8 +223,8 @@ class ParseClass:
     def get_publics(user_id, num_publics):
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         vk = vk_session.get_api()
-        groups = vk.groups.get(user_id=user_id, extended=1, fields='members_count', count=25)['items']
-        return [g['id'] for g in groups if g.get('members_count', 1000000) < 1000000][:num_publics]
+        groups = vk.groups.get(user_id=user_id, extended=1, fields='members_count', count=30)['items']
+        return [g['id'] for g in groups if g.get('members_count', 0) > 10000][:num_publics]
 
 
 class ResultClass:
@@ -239,12 +239,12 @@ class ResultClass:
     def parse_vk(self, user_vk, parse=True):
         self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
         if parse is True:
-            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 6))
+            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 10))
             self.publics_dict[user_vk] = public_ids
         else:
             public_ids = self.publics_dict.get(user_vk, [])
         for public_id in public_ids:
-            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=2000))
+            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
 
     def parse_fb(self, user_fb):
         # texts.extend(parse_class.get_posts_fb(user_fb))
@@ -261,4 +261,5 @@ class ResultClass:
         # corpora_class.process_corpora()
         verdict = normalize(np.sum(self.classifier.predict(self.vectorizer.transform(corpora_class.corpora[0]).toarray()),
                                    axis=0).reshape(1, -1))[0]
+        json.dump(self.publics_dict, open("assets/publics_dict.json", "w"))
         return list(zip(self.categories, verdict))

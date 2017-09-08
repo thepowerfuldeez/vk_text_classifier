@@ -1,6 +1,8 @@
 facebook-sdk
+tensorflow
 flask
 keras
+h5py
 nltk
 numpy
 pandas
