@@ -226,7 +226,7 @@ class ParseClass:
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         vk = vk_session.get_api()
         groups = vk.groups.get(user_id=user_id, extended=1, fields='members_count', count=30)['items']
-        return [g['id'] for g in groups if g.get('members_count', 0) > 10000][:num_publics]
+        return [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics]
 
 
 class ResultClass:
@@ -268,5 +268,6 @@ class ResultClass:
         print("Transformed corpora.")
         verdict = normalize(np.sum(self.classifier.predict(transformed),
                                    axis=0).reshape(1, -1))[0]
+        # predict_generator
         json.dump(self.publics_dict, open("assets/publics_dict.json", "w"))
         return list(zip(self.categories, verdict))
