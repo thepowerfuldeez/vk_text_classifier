@@ -42,11 +42,10 @@ def get_result():
 
     results = []
     for col, value in verdict:
-        if value > delim:
-            if verbose:
-                results.append({"name": norm_names[col], "value": float(value)})
-            else:
-                results.append(norm_names[col])
+        if verbose:
+            results.append({"name": norm_names[col], "value": float(value)})
+        elif value > delim:
+            results.append(norm_names[col])
     result.texts = []
     return app.response_class(
         response=json.dumps({"name": name, "results": results}),
