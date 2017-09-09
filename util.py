@@ -183,26 +183,26 @@ class ParseClass:
         tools = vk_api.VkTools(vk_session)
         if n:
             try:
-                wall_posts = tools.get_all_iter("wall.get", 100, values=kwargs, limit=n)
+                wall_posts = tools.get_all_iter("wall.get", 80, values=kwargs, limit=n)
                 for i, post in enumerate(wall_posts, 1):
                     if i > n:
                         break
                     yield post['text']
             except:
                 print("Going slow parse")
-                wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs, limit=n)
+                wall_posts = tools.get_all_iter("wall.get", 15, values=kwargs, limit=n)
                 for i, post in enumerate(wall_posts, 1):
                     if i > n:
                         break
                     yield post['text']
         else:
             try:
-                wall_posts = tools.get_all_iter("wall.get", 100, values=kwargs)
+                wall_posts = tools.get_all_iter("wall.get", 80, values=kwargs)
                 for post in wall_posts:
                     yield post['text']
             except:
                 print("Going slow parse")
-                wall_posts = tools.get_all_iter("wall.get", 25, values=kwargs)
+                wall_posts = tools.get_all_iter("wall.get", 15, values=kwargs)
                 for post in wall_posts:
                     yield post['text']
 
@@ -246,7 +246,10 @@ class ResultClass:
         else:
             public_ids = self.publics_dict.get(user_vk, [])
         for i, public_id in enumerate(public_ids, 1):
-            self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
+            try:
+                self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
+            except Exception as e:
+                print(e.args)
             print(f"{i}-th public have been parsed.")
 
     def parse_fb(self, user_fb):
