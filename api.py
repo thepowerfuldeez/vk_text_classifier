@@ -41,7 +41,7 @@ def get_result():
             results.append({"name": norm_names[col], "value": float(value)})
         elif value > 1.1 * margins[col]:  # delim
             accepted_cols.append(col)
-    result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict]).argsort()[::-1]][:5])
+    result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict if t[0] in accepted_cols]).argsort()[::-1]][:5])
     results = [norm_names[col] for col in result_cols]
     result.texts = []
     return app.response_class(
