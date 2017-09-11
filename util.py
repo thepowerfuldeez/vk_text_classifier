@@ -222,11 +222,12 @@ class ParseClass:
             return list(f)
 
     @staticmethod
-    def get_publics(user_id, num_publics):
+    def get_publics_and_their_names(user_id, num_publics):
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         vk = vk_session.get_api()
-        groups = vk.groups.get(user_id=user_id, extended=1, fields='members_count', count=30)['items']
-        return [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics]
+        groups = vk.groups.get(user_id=user_id, extended=1, fields='members_count', count=1000)['items']
+        return [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics], \
+               [g['name'] for g in groups]
 
 
 class ResultClass:
@@ -236,15 +237,11 @@ class ResultClass:
         self.vectorizer = pickle.load(open("assets/vectorizer.p", "rb"))
         self.texts = []
         self.parse_class = ParseClass()
-        self.publics_dict = json.load(open("assets/publics_dict.json"))
 
-    def parse_vk(self, user_vk, parse=True):
+    def parse_vk(self, user_vk):
         self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
-        if parse is True:
-            public_ids = self.publics_dict.get(user_vk, self.parse_class.get_publics(user_vk, 5))
-            self.publics_dict[user_vk] = public_ids
-        else:
-            public_ids = self.publics_dict.get(user_vk, [])
+        public_ids, names = self.parse_class.get_publics_and_their_names(user_vk, 5)
+        self.texts.extend(names)
         for i, public_id in enumerate(public_ids, 1):
             try:
                 self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
@@ -272,5 +269,4 @@ class ResultClass:
         verdict = normalize(np.sum(self.classifier.predict(transformed),
                                    axis=0).reshape(1, -1))[0]
         # predict_generator
-        json.dump(self.publics_dict, open("assets/publics_dict.json", "w"))
         return list(zip(self.categories, verdict))

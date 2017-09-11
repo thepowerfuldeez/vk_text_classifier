@@ -10,6 +10,7 @@ labels = ["Искусство", "Политика", "Финансы", "Стра�
           "Государственное управление", "Реклама и маркетинг", "Инновации и модернизация", "Безопасность",
           "Военное дело", "Корпоративное управление", "Социальная защита", "Строительство", "Предпринимательство",
           "Спорт", "Инвестиции"]
+margins = json.load(open("assets/margins.json"))
 
 
 @app.route("/")
@@ -33,25 +34,22 @@ def get_result():
     print("Got verdict.")
     norm_names = dict(zip([a[0] for a in verdict], labels))
 
-    a = np.array([b for a, b in verdict])
-    m = a.mean()
-    if m > 0.3:
-        delim = 1.5 * m
-    else:
-        delim = np.percentile(a, 85)
-
     results = []
+    accepted_cols = []
     for col, value in verdict:
         if verbose:
             results.append({"name": norm_names[col], "value": float(value)})
-        elif value > delim:
-            results.append(norm_names[col])
+        elif value > 1.1 * margins[col]:  # delim
+            accepted_cols.append(col)
+    result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict]).argsort()[::-1]][:5])
+    results = [norm_names[col] for col in result_cols]
     result.texts = []
     return app.response_class(
         response=json.dumps({"name": name, "results": results}),
         status=200,
         mimetype='application/json'
     )
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9999)
