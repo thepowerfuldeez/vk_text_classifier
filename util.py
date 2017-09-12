@@ -169,6 +169,8 @@ class ParseClass:
         # here: https://developers.facebook.com/tools/explorer/
         path = f"assets/corpora_cached_fb_users/{user}.txt"
         if not os.path.exists(path):
+            if user not in t:
+                return []
             with open(path, 'w') as f:
                 for post in t[user]:
                     if post:
@@ -219,7 +221,7 @@ class ParseClass:
                     if post:
                         _ = f.write(f"{post}\n")
         with open(path) as f:
-            return list(f)
+            return list(f)[:n_wall]
 
     @staticmethod
     def get_publics_and_their_names(user_id, num_publics):
@@ -244,29 +246,52 @@ class ResultClass:
         self.texts.extend(names)
         for i, public_id in enumerate(public_ids, 1):
             try:
-                self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=800))
+                self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=400))
             except Exception as e:
                 print(e.args)
-            print(f"{i}-th public have been parsed.")
+            print(f"{i}-th public have been parsed. ({public_id})")
 
     def parse_fb(self, user_fb):
         # texts.extend(parse_class.get_posts_fb(user_fb))
         self.texts.extend(self.parse_class.get_posts_fb_temp(user_fb))
 
-    def get_result(self, user_vk, user_fb):
+    @staticmethod
+    def nn_batch_generator(X_data, batch_size):
+        samples_per_epoch = X_data.shape[0]
+        number_of_batches = samples_per_epoch / batch_size
+        counter = 0
+        index = np.arange(np.shape(X_data)[0])
+        while 1:
+            index_batch = index[batch_size * counter:batch_size * (counter + 1)]
+            yield X_data[index_batch, :].toarray()
+            counter += 1
+            if counter > number_of_batches:
+                counter = 0
+
+    def get_result(self, user_vk, user_fb, generator=False):
         if user_vk:
+            print(f"VK Parsing {user_vk}")
             self.parse_vk(user_vk)
             print("VK Parse completed.")
         if user_fb:
+            print(f"FB Parsing {user_fb}")
             self.parse_fb(user_fb)
             print("FB Parse completed.")
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')
         print("Added to corpora")
-        transformed = self.vectorizer.transform(corpora_class.corpora[0]).toarray()
+        transformed = self.vectorizer.transform(corpora_class.corpora[0])
         print("Transformed corpora.")
-        verdict = normalize(np.sum(self.classifier.predict(transformed),
-                                   axis=0).reshape(1, -1))[0]
-        # predict_generator
-        return list(zip(self.categories, verdict))
+        if generator:
+            batch_size = 196
+            verdict = normalize(np.sum(
+                self.classifier.predict_generator(
+                    self.nn_batch_generator(transformed, batch_size),
+                    transformed.shape[0] // batch_size
+                ), axis=0).reshape(1, -1))[0]
+            return list(zip(self.categories, verdict))
+        else:
+            verdict = normalize(np.sum(self.classifier.predict(transformed.toarray()),
+                                       axis=0).reshape(1, -1))[0]
+            return list(zip(self.categories, verdict))
