@@ -52,7 +52,7 @@ def get_result():
 
     try:
         verdict = result.get_result(user_vk, user_fb)
-        print("Got verdict.")
+        print(f"Got verdict.")
         norm_names = dict(zip([a[0] for a in verdict], labels))
 
         interests = []
@@ -67,6 +67,7 @@ def get_result():
                                                                  accepted_cols]).argsort()[::-1]][:5])
             interests = [norm_names[col] for col in result_cols]
         result.texts = []
+        print(f"Interests: *{interests}")
         return app.response_class(
             response=json.dumps({"name": name, "interests": interests}),
             status=200,

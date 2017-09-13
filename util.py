@@ -222,6 +222,8 @@ class ParseClass:
                     if post:
                         _ = f.write(f"{post}\n")
         with open(path) as f:
+            if n_wall is None:
+                return list(f)
             return list(f)[:n_wall]
 
     @staticmethod
@@ -241,13 +243,13 @@ class ResultClass:
         self.texts = []
         self.parse_class = ParseClass()
 
-    def parse_vk(self, user_vk):
+    def parse_vk(self, user_vk, num_publics, n_wall):
         self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
-        public_ids, names = self.parse_class.get_publics_and_their_names(user_vk, 5)
+        public_ids, names = self.parse_class.get_publics_and_their_names(user_vk, num_publics)
         self.texts.extend(names)
         for i, public_id in enumerate(public_ids, 1):
             try:
-                self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=400))
+                self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=n_wall))
             except Exception as e:
                 print(e.args)
             print(f"{i}-th public have been parsed. ({public_id})")
@@ -272,7 +274,7 @@ class ResultClass:
     def get_result(self, user_vk, user_fb, generator=False):
         if user_vk:
             print(f"VK Parsing {user_vk}")
-            self.parse_vk(user_vk)
+            self.parse_vk(user_vk, 8, 200)
             print("VK Parse completed.")
         if user_fb:
             print(f"FB Parsing {user_fb}")
