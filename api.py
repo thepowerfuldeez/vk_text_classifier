@@ -1,7 +1,15 @@
 import flask
 import json
+
+import jinja2
 import numpy as np
 from util import ResultClass
+
+
+MESSAGE_INVALID_FIELDS = jinja2.Template(
+    '{{ \', \'.join(fields)}} {% if fields|length>1 %}are{% else %}is{% endif %} invalid'
+)
+MESSAGE_IS_NOT_CORRECT = jinja2.Template('Error \'{{field}}\' is appeared')
 
 app = flask.Flask(__name__)
 result = ResultClass()
@@ -26,30 +34,49 @@ def get_result():
     :return:
     """
     data = flask.request.get_json()
-    name = data.get('name', "")
+    name = data.get('name')
     user_vk = data.get('user_vk')
     user_fb = data.get('user_fb')
     verbose = data.get("verbose", False)
-    verdict = result.get_result(user_vk, user_fb)
-    print("Got verdict.")
-    norm_names = dict(zip([a[0] for a in verdict], labels))
 
-    results = []
-    accepted_cols = []
-    for col, value in verdict:
-        if verbose:
-            results.append({"name": norm_names[col], "value": float(value)})
-        elif value > 0.8 * margins[col]:  # delim
-            accepted_cols.append(col)
-    if not verbose:
-        result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict if t[0] in accepted_cols]).argsort()[::-1]][:5])
-        results = [norm_names[col] for col in result_cols]
-    result.texts = []
-    return app.response_class(
-        response=json.dumps({"name": name, "results": results}),
-        status=200,
-        mimetype='application/json'
-    )
+    missed_fields = []
+    if name is None:
+        missed_fields.append('name')
+    if user_vk is None or user_vk is None:
+        missed_fields.append('user_vk or user_fb')
+    if missed_fields:
+        return app.response_class(
+            response=json.dumps({'status': 'error', 'message': MESSAGE_INVALID_FIELDS.render(fields=missed_fields)}),
+            status=400,
+            mimetype='application/json')
+
+    try:
+        verdict = result.get_result(user_vk, user_fb)
+        print("Got verdict.")
+        norm_names = dict(zip([a[0] for a in verdict], labels))
+
+        interests = []
+        accepted_cols = []
+        for col, value in verdict:
+            if verbose:
+                interests.append({"name": norm_names[col], "value": float(value)})
+            elif value > 0.8 * margins[col]:  # delim
+                accepted_cols.append(col)
+        if not verbose:
+            result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict if t[0] in
+                                                                 accepted_cols]).argsort()[::-1]][:5])
+            interests = [norm_names[col] for col in result_cols]
+        result.texts = []
+        return app.response_class(
+            response=json.dumps({"name": name, "interests": interests}),
+            status=200,
+            mimetype='application/json'
+        )
+    except ValueError as e:
+        return app.response_class(
+            response=json.dumps({'status': 'error', 'message': MESSAGE_IS_NOT_CORRECT.render(field=e.args)}),
+            status=400,
+            mimetype='application/json')
 
 
 if __name__ == "__main__":

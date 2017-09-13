@@ -16,7 +16,7 @@ from sklearn.preprocessing import normalize
 from keras.models import load_model
 
 import os
-import time
+from functools import lru_cache
 import tqdm
 from config import VK_TOKEN, FB_TOKEN
 
@@ -34,6 +34,7 @@ class CorporaClass:
     ru_pattern = re.compile("[а-яА-Я]")
 
     @staticmethod
+    @lru_cache(maxsize=100000)
     def full_process(text, tokenizer=tokenizer, morph=morph, ru_pattern=ru_pattern):
         # Clear text from punctuation etc.'''
         tokens = tokenizer.tokenize(text)

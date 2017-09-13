@@ -18,7 +18,7 @@ json={
 	"name": 'Имя человека',
 	"user_vk": VK_ID,
 	"user_fb": FB_NAME,
-	"verbose": True/False
+	"verbose": True/False (default: False)
 }
 ```
 
