@@ -40,10 +40,16 @@ def get_result():
     verbose = data.get("verbose", False)
 
     missed_fields = []
-    if name is None:
-        missed_fields.append('name')
-    if user_vk is None or user_vk is None:
-        missed_fields.append('user_vk or user_fb')
+    if user_fb is None:
+        return app.response_class(
+            response=json.dumps({'status': 'error', 'message': "user_fb will be redone soon"}),
+            status=400,
+            mimetype='application/json')
+    if user_vk is None and user_fb is None:
+        return app.response_class(
+            response=json.dumps({'status': 'error', 'message': "You must provide at least user_vk or user_fb"}),
+            status=400,
+            mimetype='application/json')
     if missed_fields:
         return app.response_class(
             response=json.dumps({'status': 'error', 'message': MESSAGE_INVALID_FIELDS.render(fields=missed_fields)}),
@@ -57,10 +63,10 @@ def get_result():
 
         interests = []
         accepted_cols = []
-        for col, value in verdict:
+        for col, value in [(t[0], t[1]) for t in sorted(verdict, key=lambda x: x[1], reverse=True)][:11]:
             if verbose:
                 interests.append({"name": norm_names[col], "value": float(value)})
-            elif value > 0.8 * margins[col]:  # delim
+            elif value > 0.85 * margins[col]:  # delim
                 accepted_cols.append(col)
         if not verbose:
             result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict if t[0] in
@@ -73,7 +79,7 @@ def get_result():
             status=200,
             mimetype='application/json'
         )
-    except ValueError as e:
+    except Exception as e:
         return app.response_class(
             response=json.dumps({'status': 'error', 'message': MESSAGE_IS_NOT_CORRECT.render(field=e.args)}),
             status=400,

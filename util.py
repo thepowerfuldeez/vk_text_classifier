@@ -274,7 +274,7 @@ class ResultClass:
     def get_result(self, user_vk, user_fb, generator=False):
         if user_vk:
             print(f"VK Parsing {user_vk}")
-            self.parse_vk(user_vk, 8, 200)
+            self.parse_vk(user_vk, 6, 200)
             print("VK Parse completed.")
         if user_fb:
             print(f"FB Parsing {user_fb}")
