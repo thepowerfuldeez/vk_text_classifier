@@ -15,7 +15,6 @@ import numpy as np
 from sklearn.preprocessing import normalize
 from keras.models import load_model
 
-import os
 from functools import lru_cache
 import tqdm
 from config import VK_TOKEN, FB_TOKEN

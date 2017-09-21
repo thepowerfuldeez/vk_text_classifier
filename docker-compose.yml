@@ -12,6 +12,7 @@ services:
     redis:
         image: "redis:latest"
         container_name: vk_text_classifier_redis
+        command: redis-server /usr/local/etc/redis/redis.conf
         volumes:
           - ./redis.conf:/usr/local/etc/redis/redis.conf
           - ./assets/dump.rdb:/data/dump.rdb

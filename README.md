@@ -9,7 +9,11 @@ FB_TOKEN = FB_TOKEN
 ```
 
 #### Using API:
-`python api.py`
+```
+docker build -t vk_text_classifier .
+
+docker-compose up
+```
 
 #### API Reference
 ```json
