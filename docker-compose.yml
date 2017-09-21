@@ -1,0 +1,18 @@
+version: "2"
+services:
+    server:
+        image: vk_text_classifier
+        container_name: vk_text_classifier_server
+        command: gunicorn api:app -b localhost:9999 -k gevent --worker-connections 1000 -t 90
+        ports:
+          - "9999:9999"
+        depends_on:
+          - redis
+        network_mode: "host"
+    redis:
+        image: "redis:latest"
+        container_name: vk_text_classifier_redis
+        volumes:
+          - ./redis.conf:/usr/local/etc/redis/redis.conf
+          - ./assets/dump.rdb:/data/dump.rdb
+        network_mode: "host"

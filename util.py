@@ -19,6 +19,13 @@ import os
 from functools import lru_cache
 import tqdm
 from config import VK_TOKEN, FB_TOKEN
+from redis import Redis
+
+redis = Redis(host='redis', port=6379)
+
+
+def get_from_redis(path, num=1000):
+    return [x.decode("utf-8").strip() for x in redis.lrange(path, 0, num)]
 
 
 class CorporaClass:
@@ -136,31 +143,31 @@ class ParseClass:
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"assets/corpora_cached_fb_users/{user}.txt"
-        if not os.path.exists(path):
+        path = f"users_fb:{user}"
+        if not redis.exists(path):
             access_token = FB_TOKEN
 
             graph = facebook.GraphAPI(access_token)
             profile = graph.get_object(user)
             posts = graph.get_connections(profile['id'], 'posts')
 
-            with open(path, 'w') as f:
-                while True:
-                    try:
-                        # Perform some action on each post in the collection we receive from
-                        # Facebook.
-                        for post in posts['data']:
-                            msg = post.get('message', '')
-                            if msg:
-                                _ = f.write(f"{msg}\n")
-                        # Attempt to make a request to the next page of data, if it exists.
-                        posts = requests.get(posts['paging']['next']).json()
-                    except KeyError:
-                        # When there are no more pages (['paging']['next']), break from the
-                        # loop and end the script.
-                        break
-        with open(path) as f:
-            return list(f)
+            seq = []
+            while True:
+                try:
+                    # Perform some action on each post in the collection we receive from
+                    # Facebook.
+                    for post in posts['data']:
+                        msg = post.get('message', '')
+                        if msg:
+                            _ = seq.append(msg)
+                    # Attempt to make a request to the next page of data, if it exists.
+                    posts = requests.get(posts['paging']['next']).json()
+                except KeyError:
+                    # When there are no more pages (['paging']['next']), break from the
+                    # loop and end the script.
+                    break
+            redis.rpush(path, *seq)
+        return get_from_redis(path)
 
     @staticmethod
     def get_posts_fb_temp(user='BillGates'):
@@ -168,16 +175,16 @@ class ParseClass:
 
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"assets/corpora_cached_fb_users/{user}.txt"
-        if not os.path.exists(path):
+        path = f"users_fb:{user}"
+        if not redis.exists(path):
+            seq = []
+
             if user not in t:
-                return []
-            with open(path, 'w') as f:
-                for post in t[user]:
-                    if post:
-                        _ = f.write(f"{post}\n")
-        with open(path) as f:
-            return list(f)
+                return seq
+            for post in t[user]:
+                if post:
+                    seq.append(post)
+        return get_from_redis(path)
 
     @staticmethod
     def getallwall(kwargs, n=None):
@@ -211,20 +218,16 @@ class ParseClass:
 
     def process_owner_vk(self, owner_id, owner_type='public', n_wall=None):
         if owner_type == 'public':
-            path = f"assets/corpora_cached_vk_publics/{owner_id}.txt"
+            path = f"publics_vk:{owner_id}"
             owner_id = -owner_id
         else:
-            path = f"assets/corpora_cached_vk_users/{owner_id}.txt"
-        if not os.path.exists(path):
+            path = f"users_vk:{owner_id}"
+        if not redis.exists(path):
             wall = self.getallwall({"owner_id": owner_id}, n_wall)
-            with open(path, "w") as f:
-                for post in wall:
-                    if post:
-                        _ = f.write(f"{post}\n")
-        with open(path) as f:
-            if n_wall is None:
-                return list(f)
-            return list(f)[:n_wall]
+            redis.rpush(path, *wall)
+        if n_wall is None:
+            return get_from_redis(path)
+        return get_from_redis(path, n_wall)
 
     @staticmethod
     def get_publics_and_their_names(user_id, num_publics):
@@ -255,6 +258,7 @@ class ResultClass:
             print(f"{i}-th public have been parsed. ({public_id})")
 
     def parse_fb(self, user_fb):
+        # TODO: Facebook parsing
         # texts.extend(parse_class.get_posts_fb(user_fb))
         self.texts.extend(self.parse_class.get_posts_fb_temp(user_fb))
 

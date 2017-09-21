@@ -12,3 +12,6 @@ tqdm
 vk_api
 beautifulsoup4
 scikit-learn
+redis
+gunicorn
+gevent
