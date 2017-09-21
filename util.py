@@ -24,7 +24,11 @@ redis = Redis(host='redis', port=6379)
 
 
 def get_from_redis(path, num=1000):
-    return [x.decode("utf-8").strip() for x in redis.lrange(path, 0, num)]
+    try:
+        return [x.decode("utf-8").strip() for x in redis.lrange(path, 0, num)]
+    except Exception as e:
+        print(e.args)
+        return []
 
 
 class CorporaClass:
@@ -246,7 +250,11 @@ class ResultClass:
         self.parse_class = ParseClass()
 
     def parse_vk(self, user_vk, num_publics, n_wall):
-        self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
+        try:
+            self.texts.extend(self.parse_class.process_owner_vk(user_vk, owner_type='user'))
+        except Exception as e:
+            print(e.args)
+            return 0
         public_ids, names = self.parse_class.get_publics_and_their_names(user_vk, num_publics)
         self.texts.extend(names)
         for i, public_id in enumerate(public_ids, 1):
@@ -255,11 +263,17 @@ class ResultClass:
             except Exception as e:
                 print(e.args)
             print(f"{i}-th public have been parsed. ({public_id})")
+        return 1
 
     def parse_fb(self, user_fb):
         # TODO: Facebook parsing
         # texts.extend(parse_class.get_posts_fb(user_fb))
-        self.texts.extend(self.parse_class.get_posts_fb_temp(user_fb))
+        posts = self.parse_class.get_posts_fb_temp(user_fb)
+        self.texts.extend(posts)
+        if len(posts):
+            return 1
+        else:
+            return 0
 
     @staticmethod
     def nn_batch_generator(X_data, batch_size):
@@ -277,12 +291,14 @@ class ResultClass:
     def get_result(self, user_vk, user_fb, generator=False):
         if user_vk:
             print(f"VK Parsing {user_vk}")
-            self.parse_vk(user_vk, 6, 200)
+            r = self.parse_vk(user_vk, 7, 200)
             print("VK Parse completed.")
         if user_fb:
             print(f"FB Parsing {user_fb}")
-            self.parse_fb(user_fb)
-            print("FB Parse completed.")
+            r = self.parse_fb(user_fb)
+            print(f"FB Parse completed with response {r}.")
+            if not r and not user_vk:
+                return list(zip(self.categories, np.zeros(len(self.categories))))
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')

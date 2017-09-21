@@ -39,20 +39,9 @@ def get_result():
     user_fb = data.get('user_fb')
     verbose = data.get("verbose", False)
 
-    missed_fields = []
-    if user_fb is None:
-        return app.response_class(
-            response=json.dumps({'status': 'error', 'message': "user_fb will be redone soon"}),
-            status=400,
-            mimetype='application/json')
     if user_vk is None and user_fb is None:
         return app.response_class(
             response=json.dumps({'status': 'error', 'message': "You must provide at least user_vk or user_fb"}),
-            status=400,
-            mimetype='application/json')
-    if missed_fields:
-        return app.response_class(
-            response=json.dumps({'status': 'error', 'message': MESSAGE_INVALID_FIELDS.render(fields=missed_fields)}),
             status=400,
             mimetype='application/json')
 
