@@ -14,7 +14,7 @@ FB_TOKEN = FB_TOKEN
 ```
 docker build -t vk_text_classifier .
 
-docker-compose up
+docker-compose up -d
 ```
 
 #### API Reference
