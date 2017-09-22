@@ -3,7 +3,7 @@ services:
     server:
         image: vk_text_classifier
         container_name: vk_text_classifier_server
-        command: gunicorn api:app -b 0.0.0.0:9999 -k gevent --worker-connections 1000 -t 90
+        command: gunicorn --access-logfile - api:app -b 0.0.0.0:9999 -k gevent --worker-connections 1000 -t 90
         ports:
           - "9999:9999"
         links:
