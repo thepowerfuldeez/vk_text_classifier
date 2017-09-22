@@ -19,6 +19,7 @@ from functools import lru_cache
 import tqdm
 from config import VK_TOKEN, FB_TOKEN
 from redis import Redis
+import tensorflow as tf
 
 redis = Redis(host='redis', port=6379)
 
@@ -245,6 +246,8 @@ class ResultClass:
     def __init__(self):
         self.categories = json.load(open("assets/categories.json"))
         self.classifier = load_model("assets/vk_texts_classifier.h5")
+        self.classifier._make_predict_function()
+        self.graph = tf.get_default_graph()
         self.vectorizer = pickle.load(open("assets/vectorizer.p", "rb"))
         self.texts = []
         self.parse_class = ParseClass()
@@ -314,6 +317,7 @@ class ResultClass:
                 ), axis=0).reshape(1, -1))[0]
             return list(zip(self.categories, verdict))
         else:
-            verdict = normalize(np.sum(self.classifier.predict(transformed.toarray()),
-                                       axis=0).reshape(1, -1))[0]
+            with self.graph.as_default():
+                predicted = self.classifier.predict(transformed.toarray())
+            verdict = normalize(np.sum(predicted, axis=0).reshape(1, -1))[0]
             return list(zip(self.categories, verdict))
