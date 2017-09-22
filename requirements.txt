@@ -6,8 +6,8 @@ h5py
 nltk
 numpy
 pandas
-pymorphy2
 pymorphy2[fast]
+pymorphy2-dicts-ru
 requests
 tqdm
 vk_api
