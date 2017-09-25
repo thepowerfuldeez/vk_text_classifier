@@ -1,5 +1,6 @@
 import flask
 import json
+from redis import Redis
 
 import jinja2
 import numpy as np
@@ -12,7 +13,9 @@ MESSAGE_INVALID_FIELDS = jinja2.Template(
 MESSAGE_IS_NOT_CORRECT = jinja2.Template('Error \'{{field}}\' is appeared')
 
 app = flask.Flask(__name__)
-result = ResultClass()
+
+redis_obj = Redis(host='redis', port=6379)
+result = ResultClass(redis_obj)
 labels = ["Искусство", "Политика", "Финансы", "Стратегическое управление", "Юриспруденция", "Исследования и разработки",
           "Промышленность", "Образование", "Благотворительность", "Здравоохранение", "Сельское хозяйство",
           "Государственное управление", "Реклама и маркетинг", "Инновации и модернизация", "Безопасность",

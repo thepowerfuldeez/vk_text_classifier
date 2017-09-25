@@ -97,5 +97,10 @@ ENV/
 
 .idea
 assets
+notebooks
 config.py
 !/assets/.keep
+!/notebooks/Task.ipynb
+!/notebooks/Parser.ipynb
+Graph
+chromedriver
