@@ -1,6 +1,6 @@
 # vk_text_classifier
 Neural network classifier of vk (or even facebook) profiles based on texts corpora.
-Files needed to run: `dump.rdb categories.json fb_dump.json vk_texts_classifier.h5 vectorizer.p margins.json`
+Files needed to run: `dump.rdb fb_dump.json vk_texts_classifier.h5 vectorizer.p margins.json`
 (all files go into assets/ subdir)
 
 ## Usage:

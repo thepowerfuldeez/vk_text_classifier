@@ -244,7 +244,10 @@ class ParseClass:
 
 class ResultClass:
     def __init__(self):
-        self.categories = json.load(open("assets/categories.json"))
+        self.categories = ['art', 'politics', 'finances', 'strateg_management', 'law', 'elaboration', 'industry',
+                           'education', 'charity', 'public_health', 'agriculture', 'government_management', 'smm',
+                           'innovations', 'safety', 'military', 'corporative_management', 'social_safety', 'building',
+                           'entrepreneurship', 'sport', 'investitions']
         self.classifier = load_model("assets/vk_texts_classifier.h5")
         self.classifier._make_predict_function()
         self.graph = tf.get_default_graph()
