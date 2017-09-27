@@ -251,7 +251,7 @@ class ResultClass:
             try:
                 self.texts.extend(self.parse_class.process_owner_vk(public_id, owner_type='public', n_wall=n_wall))
             except Exception as e:
-                print(e.args)
+                print(e)
             print(f"{i}-th public have been parsed. ({public_id})")
 
     def parse_fb(self, user_fb):
