@@ -98,7 +98,7 @@ class ParseClass:
         try:
             return [x.decode("utf-8").strip() for x in self.redis.lrange(path, 0, num)]
         except Exception as e:
-            print(e.args)
+            print(e)
             return []
 
     @staticmethod
