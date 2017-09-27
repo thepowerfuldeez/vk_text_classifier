@@ -206,8 +206,9 @@ class ParseClass:
         vk_session = vk_api.VkApi(token=VK_TOKEN)
         vk = vk_session.get_api()
         groups = vk.users.getSubscriptions(user_id=user_id, extended=1, fields='members_count', count=200)['items']
-        return [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics], \
-               [g['name'] for g in groups]
+        group_ids = [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics]
+        names = [g.get('name', "") for g in groups]
+        return group_ids, names
 
 
 class ResultClass:

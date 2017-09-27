@@ -5,6 +5,7 @@ from redis import Redis
 import jinja2
 import numpy as np
 from util import ResultClass
+import sys
 
 
 MESSAGE_INVALID_FIELDS = jinja2.Template(
@@ -36,7 +37,7 @@ def get_result():
     :return:
     """
     data = flask.request.get_json()
-    name = data.get('name')
+    name = data.get('name', "")
     user_vk = data.get('user_vk')
     user_fb = data.get('user_fb')
     verbose = data.get("verbose", False)
@@ -73,7 +74,7 @@ def get_result():
 
     except Exception as e:
         return app.response_class(
-            response=json.dumps({"status": "error", "message": f"\n{e}, {e.args}"}),
+            response=json.dumps({"status": "error", "message": sys.exc_info()[1]}),
             status=200,
             mimetype='application/json'
         )
