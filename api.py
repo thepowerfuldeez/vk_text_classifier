@@ -1,5 +1,6 @@
 import flask
 import json
+from redis import Redis
 
 import jinja2
 import numpy as np
@@ -9,10 +10,11 @@ from util import ResultClass
 MESSAGE_INVALID_FIELDS = jinja2.Template(
     '{{ \', \'.join(fields)}} {% if fields|length>1 %}are{% else %}is{% endif %} invalid'
 )
-MESSAGE_IS_NOT_CORRECT = jinja2.Template('Error \'{{field}}\' is appeared')
 
 app = flask.Flask(__name__)
-result = ResultClass()
+
+redis_obj = Redis(host='redis', port=6379)
+result = ResultClass(redis_obj)
 labels = ["Искусство", "Политика", "Финансы", "Стратегическое управление", "Юриспруденция", "Исследования и разработки",
           "Промышленность", "Образование", "Благотворительность", "Здравоохранение", "Сельское хозяйство",
           "Государственное управление", "Реклама и маркетинг", "Инновации и модернизация", "Безопасность",
@@ -39,20 +41,9 @@ def get_result():
     user_fb = data.get('user_fb')
     verbose = data.get("verbose", False)
 
-    missed_fields = []
-    if user_fb is None:
-        return app.response_class(
-            response=json.dumps({'status': 'error', 'message': "user_fb will be redone soon"}),
-            status=400,
-            mimetype='application/json')
     if user_vk is None and user_fb is None:
         return app.response_class(
             response=json.dumps({'status': 'error', 'message': "You must provide at least user_vk or user_fb"}),
-            status=400,
-            mimetype='application/json')
-    if missed_fields:
-        return app.response_class(
-            response=json.dumps({'status': 'error', 'message': MESSAGE_INVALID_FIELDS.render(fields=missed_fields)}),
             status=400,
             mimetype='application/json')
 
@@ -79,11 +70,13 @@ def get_result():
             status=200,
             mimetype='application/json'
         )
+
     except Exception as e:
         return app.response_class(
-            response=json.dumps({'status': 'error', 'message': f"\n{e}")}),
-            status=400,
-            mimetype='application/json')
+            response=json.dumps({"status": "error", "message": f"\n{e}"}),
+            status=200,
+            mimetype='application/json'
+        )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 # vk_text_classifier
 Neural network classifier of vk (or even facebook) profiles based on texts corpora.
+Files needed to run: `dump.rdb fb_dump.json vk_texts_classifier.h5 vectorizer.p margins.json`
+(all files go into assets/ subdir)
 
 ## Usage:
 #### Setting up config.py
@@ -9,7 +11,11 @@ FB_TOKEN = FB_TOKEN
 ```
 
 #### Using API:
-`python api.py`
+```
+docker build -t vk_text_classifier .
+
+docker-compose up -d
+```
 
 #### API Reference
 ```json
