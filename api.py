@@ -73,7 +73,7 @@ def get_result():
 
     except Exception as e:
         return app.response_class(
-            response=json.dumps({"status": "error", "message": f"\n{e}"}),
+            response=json.dumps({"status": "error", "message": f"\n{e}, {e.args}"}),
             status=200,
             mimetype='application/json'
         )
