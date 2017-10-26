@@ -21,7 +21,7 @@ docker-compose up -d
 ```json
 POST /get_result
 json={
-	"name": 'Имя человека',
+	"name": 'Georgiy', # Name of a person (
 	"user_vk": VK_ID,
 	"user_fb": FB_NAME,
 	"verbose": True/False (default: False)
