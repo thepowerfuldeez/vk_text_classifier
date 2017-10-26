@@ -237,8 +237,6 @@ class ResultClass:
             for public_id in public_ids:
                 paths.append(self.parse_class.process_owner_vk(pool, public_id, owner_type='public', n_wall=n_wall))
 
-        print(self.parse_class.pool_data.keys())
-
         for i, (path, db_exists) in enumerate(paths, 0):
             if not db_exists:
                 try:
