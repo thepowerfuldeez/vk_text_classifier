@@ -62,7 +62,7 @@ def get_result():
                 accepted_cols.append(col)
         if not verbose:
             result_cols = list(np.array(accepted_cols)[np.array([t[1] for t in verdict if t[0] in
-                                                                 accepted_cols]).argsort()[::-1]][:5])
+                                                                 accepted_cols]).argsort()[::-1]][:4])
             interests = [norm_names[col] for col in result_cols]
         result.texts = []
         print(f"Interests: *{interests}")
