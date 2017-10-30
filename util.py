@@ -141,19 +141,30 @@ class ParseClass:
 
         return check_valid(get_links(url))
 
-    def get_posts_fb(self, user='BillGates'):
-
+    def get_posts_fb(self, user_fb):
+        """
+        :param user_fb: str or int whether you are using token or facebook profile id
+        if int, there's no access token used
+        :return:
+        """
         # You'll need an access token here to do anything.  You can get a temporary one
         # here: https://developers.facebook.com/tools/explorer/
-        path = f"users_fb:{user}"
-        if not self.redis.exists(path):
-            access_token = FB_TOKEN
+        seq = []
 
+        if type(user_fb) == int:
+            user = user_fb
+        elif type(user_fb) == str:
+            access_token = user_fb
             graph = facebook.GraphAPI(access_token)
-            profile = graph.get_object(user)
-            posts = graph.get_connections(profile['id'], 'posts')
+            profile = graph.get_object('/me')
+            user = profile['id']
+        else:
+            return seq
+        path = f"users_fb:{user}"
 
-            seq = []
+        if not self.redis.exists(path):
+            posts = graph.get_connections(user, 'posts')
+
             while True:
                 try:
                     # Perform some action on each post in the collection we receive from
@@ -171,44 +182,80 @@ class ParseClass:
             self.redis.rpush(path, *seq)
         return self.get_from_redis(path)
 
-    def get_posts_fb_temp(self, user='BillGates'):
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/fb_dump.json"))
-        t = json.load(open(path))
+    # def get_posts_fb_temp(self, user='BillGates'):
+    #     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/fb_dump.json"))
+    #     t = json.load(open(path))
+    #
+    #     # You'll need an access token here to do anything.  You can get a temporary one
+    #     # here: https://developers.facebook.com/tools/explorer/
+    #     path = f"users_fb:{user}"
+    #     if not self.redis.exists(path):
+    #         seq = []
+    #
+    #         if user not in t:
+    #             return seq
+    #         for post in t[user]:
+    #             if post:
+    #                 seq.append(post)
+    #         self.redis.rpush(path, *seq)
+    #     return self.get_from_redis(path)
 
-        # You'll need an access token here to do anything.  You can get a temporary one
-        # here: https://developers.facebook.com/tools/explorer/
-        path = f"users_fb:{user}"
-        if not self.redis.exists(path):
-            seq = []
-
-            if user not in t:
-                return seq
-            for post in t[user]:
-                if post:
-                    seq.append(post)
-            self.redis.rpush(path, *seq)
-        return self.get_from_redis(path)
-
-    def process_owner_vk(self, pool, owner_id, owner_type='public', n_wall=100):
+    def process_owner_vk(self, pool, owner_id: int, owner_type='public', n_wall=100):
+        """
+        Processing RequestsPool wall.get method on that owner_id
+        :param pool: vk_api.VkRequestsPool object
+        :param owner_id: int
+        :param owner_type: str
+        :param n_wall: int
+        :return: generated path, db_exists indicator
+        if db_exists = 1 then we get that values further
+        if db_exists = 0 then we need to put values in db
+        if db_exists = -1 then we don't do anything
+        """
         if owner_type == 'public':
             path = f"publics_vk:{owner_id}"
             owner_id = -owner_id
         else:
             path = f"users_vk:{owner_id}"
         if not self.redis.exists(path):
-            self.pool_data[path] = pool.method("wall.get", {"owner_id": owner_id, "count": n_wall})
-            return path, 0
+            if not pool:
+                return path, -1
+            else:
+                self.pool_data[path] = pool.method("wall.get", {"owner_id": owner_id, "count": n_wall})
+                return path, 0
         else:
             return path, 1
 
-    @staticmethod
-    def get_publics_and_their_names(user_id, num_publics):
-        vk_session = vk_api.VkApi(token=VK_TOKEN)
-        vk = vk_session.get_api()
-        groups = vk.users.getSubscriptions(user_id=user_id, extended=1, fields='members_count', count=200)['items']
-        group_ids = [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000][:num_publics]
+    def get_publics_and_their_names(self, user_vk: int, num_publics):
+        """
+        Used to get text definition of publics and their ids to get their post further
+        :param user_vk: int because of public api
+        :param num_publics: slice list of publics and names
+        :return:
+        """
+
+        if type(user_vk) == int:
+            user_id = user_vk
+            vk_session = vk_api.VkApi()
+            vk = vk_session.get_api()
+            groups = vk.users.getSubscriptions(user_id=user_id, extended=1, fields='members_count', count=200)['items']
+        else:
+            groups = []
+
+        public_ids = [g['id'] for g in groups if 10000 < g.get('members_count', 0) < 3500000]
         names = [g.get('name', "") for g in groups]
-        return group_ids, names
+
+        path1 = f"users_vk_publics_ids:{user_id}"
+        path2 = f"users_vk_publics_names:{user_id}"
+
+        if not self.redis.exists(path1) and not self.redis.exists(path2):
+            if type(user_vk) == str or int:
+                self.redis.rpush(path1, *public_ids)
+                self.redis.rpush(path2, *names)
+            else:
+                return public_ids, names
+        public_ids, names = self.get_from_redis(path1)[:num_publics], self.get_from_redis(path2)[:num_publics]
+        return public_ids, names
 
 
 class ResultClass:
@@ -219,6 +266,7 @@ class ResultClass:
                            'entrepreneurship', 'sport', 'investitions']
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/vk_texts_classifier.h5"))
         self.classifier = load_model(path)
+        # noinspection PyProtectedMember
         self.classifier._make_predict_function()
         self.graph = tf.get_default_graph()
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/vectorizer.p"))
@@ -227,15 +275,39 @@ class ResultClass:
         self.parse_class = ParseClass(redis_obj)
 
     def parse_vk(self, user_vk, num_publics, n_wall=100):
-        vk_session = vk_api.VkApi(token=VK_TOKEN)
-        public_ids, names = self.parse_class.get_publics_and_their_names(user_vk, num_publics)
-        self.texts.extend(names)
+        """
+        Parse vk profile of user, getting wall, getting public names and ids, getting posts from every
+        public id and combine altogether.
+        :param user_vk: str or int whether you are using token or vk user id
+        if int, there's no access token used
+        :param num_publics: slice of list in get publics and their names function
+        :param n_wall: slice of list in getting number of posts from wall and publics
+        :return:
+        """
 
-        paths = []
-        with vk_api.VkRequestsPool(vk_session) as pool:
-            paths.append(self.parse_class.process_owner_vk(pool, user_vk, owner_type='user'))
+        if type(user_vk) == int:
+            user_id = user_vk
+            public_ids, names = self.parse_class.get_publics_and_their_names(user_id, num_publics)
+            pool = None
+            paths = [self.parse_class.process_owner_vk(pool, user_vk, owner_type='user')]
             for public_id in public_ids:
                 paths.append(self.parse_class.process_owner_vk(pool, public_id, owner_type='public', n_wall=n_wall))
+        elif type(user_vk) == str:
+            access_token = user_vk
+            vk_session = vk_api.VkApi(token=access_token)
+            vk = vk_session.get_api()
+            user_id = vk.users.get()[0]['id']
+            public_ids, names = self.parse_class.get_publics_and_their_names(user_id, num_publics)
+
+            paths = []
+            with vk_api.VkRequestsPool(vk_session) as pool:
+                paths.append(self.parse_class.process_owner_vk(pool, user_vk, owner_type='user'))
+                for public_id in public_ids:
+                    paths.append(self.parse_class.process_owner_vk(pool, public_id, owner_type='public', n_wall=n_wall))
+        else:
+            public_ids, names, paths = [], [], []
+
+        self.texts.extend(names)
 
         for i, (path, db_exists) in enumerate(paths, 0):
             if not db_exists:
@@ -245,24 +317,20 @@ class ResultClass:
                 except Exception as e:
                     print(e)
                     wall = []
-            else:
+            elif db_exists:
                 wall = self.parse_class.get_from_redis(path, n_wall)
+            else:
+                wall = []
             self.texts.extend(wall)
             try:
                 print(f"{i + 1}-th public have been parsed. ({public_ids[i]})")
             except IndexError:
                 pass
-        return 1
 
     def parse_fb(self, user_fb):
-        # TODO: Facebook parsing
-        # texts.extend(parse_class.get_posts_fb(user_fb))
-        posts = self.parse_class.get_posts_fb_temp(user_fb)
+        posts = self.parse_class.get_posts_fb(user_fb)
+        # posts = self.parse_class.get_posts_fb_temp(user_fb)
         self.texts.extend(posts)
-        if len(posts):
-            return 1
-        else:
-            return 0
 
     @staticmethod
     def nn_batch_generator(X_data, batch_size):
@@ -281,14 +349,12 @@ class ResultClass:
         if user_vk:
             print(f"VK Parsing {user_vk}")
             t = time.time()
-            r = self.parse_vk(user_vk, 15)
+            self.parse_vk(user_vk, 15)
             print(f"VK Parse completed in {time.time() - t} sec.")
         if user_fb:
             print(f"FB Parsing {user_fb}")
-            r = self.parse_fb(user_fb)
+            self.parse_fb(user_fb)
             print(f"FB Parse completed with response {r}.")
-            if not r and not user_vk:
-                return list(zip(self.categories, np.zeros(len(self.categories))))
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')

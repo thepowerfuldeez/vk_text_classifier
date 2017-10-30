@@ -18,10 +18,10 @@ docker-compose up -d
 ```
 
 #### API Reference
+##### POST /get_result
 ```json
-POST /get_result
-json={
-	"name": 'Georgiy', # Name of a person (
+{
+	"name": "Georgiy", (not necessary)
 	"user_vk": VK_ID,
 	"user_fb": FB_NAME,
 	"verbose": True/False (default: False)
