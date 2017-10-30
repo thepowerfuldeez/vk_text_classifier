@@ -9,7 +9,6 @@ pandas
 pymorphy2[fast]
 pymorphy2-dicts-ru
 requests
-tqdm
 vk_api
 beautifulsoup4
 scikit-learn

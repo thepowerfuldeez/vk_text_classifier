@@ -19,7 +19,6 @@ from keras.models import load_model
 
 from functools import lru_cache
 import tqdm
-from config import VK_TOKEN, FB_TOKEN
 import tensorflow as tf
 
 
@@ -62,7 +61,7 @@ class CorporaClass:
                 processed = ""
             if len(processed.split()) > 2:
                 doc.append(processed)
-        if len(doc) > 2:
+        if len(doc) > 2 or sum([len(a) for a in doc]) > 150:
             self.corpora.append(doc)
             self.labels.append(label)
 
@@ -353,8 +352,9 @@ class ResultClass:
             print(f"VK Parse completed in {time.time() - t} sec.")
         if user_fb:
             print(f"FB Parsing {user_fb}")
+            t = time.time()
             self.parse_fb(user_fb)
-            print(f"FB Parse completed with response {r}.")
+            print(f"FB Parse completed in {time.time() - t} sec.")
 
         corpora_class = CorporaClass()
         corpora_class.add_to_corpora(self.texts, '')
