@@ -162,7 +162,7 @@ class ParseClass:
         path = f"users_fb:{user}"
 
         if not self.redis.exists(path):
-            posts = graph.get_connections(user, 'posts')
+            posts = graph.get_connections(user, 'feed')
 
             while True:
                 try:
