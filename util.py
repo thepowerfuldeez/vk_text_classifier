@@ -247,12 +247,9 @@ class ParseClass:
         path2 = f"users_vk_publics_names:{user_id}"
 
         if not self.redis.exists(path1) and not self.redis.exists(path2):
-            if type(user_vk) == str or int:
-                self.redis.rpush(path1, *public_ids)
-                self.redis.rpush(path2, *names)
-            else:
-                return public_ids, names
-        public_ids, names = self.get_from_redis(path1)[:num_publics], self.get_from_redis(path2)[:num_publics]
+            self.redis.rpush(path1, *public_ids)
+            self.redis.rpush(path2, *names)
+        public_ids, names = [int(a) for a in self.get_from_redis(path1)][:num_publics], self.get_from_redis(path2)[:num_publics]
         return public_ids, names
 
 
