@@ -287,7 +287,7 @@ class ResultClass:
             user_id = user_vk
             public_ids, names = self.parse_class.get_publics_and_their_names(user_id, num_publics)
             pool = None
-            paths = [self.parse_class.process_owner_vk(pool, user_vk, owner_type='user')]
+            paths = [self.parse_class.process_owner_vk(pool, user_id, owner_type='user')]
             for public_id in public_ids:
                 paths.append(self.parse_class.process_owner_vk(pool, public_id, owner_type='public', n_wall=n_wall))
         elif type(user_vk) == str:
@@ -299,7 +299,7 @@ class ResultClass:
 
             paths = []
             with vk_api.VkRequestsPool(vk_session) as pool:
-                paths.append(self.parse_class.process_owner_vk(pool, user_vk, owner_type='user'))
+                paths.append(self.parse_class.process_owner_vk(pool, user_id, owner_type='user'))
                 for public_id in public_ids:
                     paths.append(self.parse_class.process_owner_vk(pool, public_id, owner_type='public', n_wall=n_wall))
         else:
