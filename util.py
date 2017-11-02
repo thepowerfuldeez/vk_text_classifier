@@ -353,21 +353,25 @@ class ResultClass:
             self.parse_fb(user_fb)
             print(f"FB Parse completed in {time.time() - t} sec.")
 
-        corpora_class = CorporaClass()
-        corpora_class.add_to_corpora(self.texts, '')
-        print("Added to corpora")
-        transformed = self.vectorizer.transform(corpora_class.corpora[0])
-        print("Transformed corpora.")
-        if generator:
-            batch_size = 196
-            verdict = normalize(np.sum(
-                self.classifier.predict_generator(
-                    self.nn_batch_generator(transformed, batch_size),
-                    transformed.shape[0] // batch_size
-                ), axis=0).reshape(1, -1))[0]
-            return list(zip(self.categories, verdict))
+        if self.texts:
+            corpora_class = CorporaClass()
+            corpora_class.add_to_corpora(self.texts, '')
+            print("Added to corpora.")
+            transformed = self.vectorizer.transform(corpora_class.corpora[0])
+            print("Transformed corpora.")
+            if generator:
+                batch_size = 196
+                verdict = normalize(np.sum(
+                    self.classifier.predict_generator(
+                        self.nn_batch_generator(transformed, batch_size),
+                        transformed.shape[0] // batch_size
+                    ), axis=0).reshape(1, -1))[0]
+                return list(zip(self.categories, verdict))
+            else:
+                with self.graph.as_default():
+                    predicted = self.classifier.predict(transformed.toarray())
+                verdict = normalize(np.sum(predicted, axis=0).reshape(1, -1))[0]
+                return list(zip(self.categories, verdict))
         else:
-            with self.graph.as_default():
-                predicted = self.classifier.predict(transformed.toarray())
-            verdict = normalize(np.sum(predicted, axis=0).reshape(1, -1))[0]
-            return list(zip(self.categories, verdict))
+            print("Zero result.")
+            return list(zip(self.categories, np.zeros(len(self.categories))))
