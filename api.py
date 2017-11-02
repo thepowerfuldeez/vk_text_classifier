@@ -37,10 +37,13 @@ def get_result():
     :return:
     """
     data = flask.request.get_json()
-    name = data.get('name', "")
-    user_vk = data.get('user_vk')
-    user_fb = data.get('user_fb')
-    verbose = data.get("verbose", False)
+    if not data:
+        user_vk = user_fb = None
+    else:
+        name = data.get('name', "")
+        user_vk = data.get('user_vk')
+        user_fb = data.get('user_fb')
+        verbose = data.get("verbose", False)
 
     if user_vk is None and user_fb is None:
         return app.response_class(

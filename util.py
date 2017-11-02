@@ -160,7 +160,7 @@ class ParseClass:
             return seq
         path = f"users_fb:{user}"
 
-        if not self.redis.exists(path):
+        if not self.redis.exists(path) and type(user_fb) == str:
             posts = graph.get_connections(user, 'feed')
 
             while True:
@@ -177,7 +177,8 @@ class ParseClass:
                     # When there are no more pages (['paging']['next']), break from the
                     # loop and end the script.
                     break
-            self.redis.rpush(path, *seq)
+            if seq:
+                self.redis.rpush(path, *seq)
         return self.get_from_redis(path)
 
     # def get_posts_fb_temp(self, user='BillGates'):
