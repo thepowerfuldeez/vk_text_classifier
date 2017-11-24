@@ -12,7 +12,6 @@ import requests
 from bs4 import BeautifulSoup
 
 import pickle
-import json
 import numpy as np
 from sklearn.preprocessing import normalize
 from keras.models import load_model
@@ -36,7 +35,7 @@ class CorporaClass:
     @staticmethod
     @lru_cache(maxsize=100000)
     def full_process(text, tokenizer=tokenizer, morph=morph, ru_pattern=ru_pattern):
-        # Clear text from punctuation etc.'''
+        # Clear text from punctuation etc.
         tokens = tokenizer.tokenize(text)
 
         # Turn tokens into normal form excluding non-nouns or verbs
@@ -64,31 +63,14 @@ class CorporaClass:
             self.corpora.append(doc)
             self.labels.append(label)
 
-    def process_corpora(self):
-        all_words = []
-        for doc in tqdm.tqdm(self.corpora):
-            all_words.extend(list(itertools.chain(*(a.split() for a in doc))))
-        vc = pd.Series(all_words).value_counts()
-        stoplist = vc.index[:20].tolist() + vc.index[vc.values == 1].tolist()
-        new_corpora = []
-        for doc in self.corpora:
-            accepted_lines = []
-            for line in doc:
-                accepted_words = []
-                for word in line.split():
-                    if word not in stoplist:
-                        accepted_words.append(word)
-                        self.vocab.add(word)
-                accepted_lines.append(" ".join(accepted_words))
-            new_corpora.append(accepted_lines)
-        self.corpora = new_corpora
-        self.vocab = self.vocab - {""}
-
 
 class ParseClass:
     """Class for getting data from sites, facebook, vk"""
 
     def __init__(self, redis_obj):
+        """
+        :param redis_obj: Where to push parsed data
+        """
         self.redis = redis_obj
         self.pool_data = {}
 
@@ -181,24 +163,6 @@ class ParseClass:
                 self.redis.rpush(path, *seq)
         return self.get_from_redis(path)
 
-    # def get_posts_fb_temp(self, user='BillGates'):
-    #     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/fb_dump.json"))
-    #     t = json.load(open(path))
-    #
-    #     # You'll need an access token here to do anything.  You can get a temporary one
-    #     # here: https://developers.facebook.com/tools/explorer/
-    #     path = f"users_fb:{user}"
-    #     if not self.redis.exists(path):
-    #         seq = []
-    #
-    #         if user not in t:
-    #             return seq
-    #         for post in t[user]:
-    #             if post:
-    #                 seq.append(post)
-    #         self.redis.rpush(path, *seq)
-    #     return self.get_from_redis(path)
-
     def process_owner_vk(self, pool, owner_id: int, owner_type='public', n_wall=100):
         """
         Processing RequestsPool wall.get method on that owner_id
@@ -225,10 +189,10 @@ class ParseClass:
         else:
             return path, 1
 
-    def get_publics_and_their_names(self, user_vk: int, num_publics):
+    def get_publics_and_their_names(self, user_vk: int, num_publics: int):
         """
         Used to get text definition of publics and their ids to get their post further
-        :param user_vk: int because of public api
+        :param user_vk: we are using public vk api, so no need for token here
         :param num_publics: slice list of publics and names
         :return:
         """
@@ -250,7 +214,8 @@ class ParseClass:
         if not self.redis.exists(path1) and not self.redis.exists(path2):
             self.redis.rpush(path1, *public_ids)
             self.redis.rpush(path2, *names)
-        public_ids, names = [int(a) for a in self.get_from_redis(path1)][:num_publics], self.get_from_redis(path2)[:num_publics]
+        public_ids = [int(a) for a in self.get_from_redis(path1)][:num_publics]
+        names = self.get_from_redis(path2)[:num_publics]
         return public_ids, names
 
 
@@ -260,13 +225,16 @@ class ResultClass:
                            'education', 'charity', 'public_health', 'agriculture', 'government_management', 'smm',
                            'innovations', 'safety', 'military', 'corporative_management', 'social_safety', 'building',
                            'entrepreneurship', 'sport', 'investitions']
+        # path to keras model
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/vk_texts_classifier.h5"))
         self.classifier = load_model(path)
         # noinspection PyProtectedMember
         self.classifier._make_predict_function()
         self.graph = tf.get_default_graph()
+        # path to vectorizer object
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), "assets/vectorizer.p"))
         self.vectorizer = pickle.load(open(path, "rb"))
+
         self.texts = []
         self.parse_class = ParseClass(redis_obj)
 
@@ -325,21 +293,7 @@ class ResultClass:
 
     def parse_fb(self, user_fb):
         posts = self.parse_class.get_posts_fb(user_fb)
-        # posts = self.parse_class.get_posts_fb_temp(user_fb)
         self.texts.extend(posts)
-
-    @staticmethod
-    def nn_batch_generator(X_data, batch_size):
-        samples_per_epoch = X_data.shape[0]
-        number_of_batches = samples_per_epoch / batch_size
-        counter = 0
-        index = np.arange(np.shape(X_data)[0])
-        while 1:
-            index_batch = index[batch_size * counter:batch_size * (counter + 1)]
-            yield X_data[index_batch, :].toarray()
-            counter += 1
-            if counter > number_of_batches:
-                counter = 0
 
     def get_result(self, user_vk, user_fb, generator=False):
         if user_vk:
