@@ -1,0 +1,21 @@
+version: "2"
+services:
+    server:
+        build:
+          context: .
+          dockerfile: Dockerfile.dev
+        container_name: vk_text_classifier_server_dev
+        command: gunicorn --access-logfile - api:app -b 0.0.0.0:9998 -k gevent --worker-connections 1000 -t 90
+        links:
+          - redis
+        depends_on:
+          - redis
+    redis:
+        image: "redis:latest"
+        container_name: vk_text_classifier_redis_dev
+        command: redis-server /usr/local/etc/redis/redis.conf
+        ports:
+          - "6378:6378"
+        volumes:
+          - ./redis.conf:/usr/local/etc/redis/redis.conf
+          - ./assets/dump.rdb:/data/dump.rdb

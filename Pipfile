@@ -28,3 +28,6 @@ gevent = "*"
 
 [dev-packages]
 
+jupyter = "*"
+tqdm = "*"
+lxml = "*"

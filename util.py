@@ -1,8 +1,6 @@
-import itertools
 import pymorphy2
 import re
 import os
-import pandas as pd
 import time
 from nltk.tokenize import RegexpTokenizer
 
@@ -163,6 +161,18 @@ class ParseClass:
                 self.redis.rpush(path, *seq)
         return self.get_from_redis(path)
 
+    @staticmethod
+    def get_wall_vk(owner_id, count, access_token):
+        vk_session = vk_api.VkApi(token=access_token)
+        vk_tools = vk_api.VkTools(vk_session)
+        try:
+            n_wall = min(1000, count // 25)
+            wall = vk_tools.get_all('wall.get', n_wall, {'owner_id': owner_id}, limit=count)['items']
+        except Exception as e:
+            print(e)
+            wall = []
+        return [a['text'] for a in wall]
+
     def process_owner_vk(self, pool, owner_id: int, owner_type='public', n_wall=100):
         """
         Processing RequestsPool wall.get method on that owner_id
@@ -313,19 +323,10 @@ class ResultClass:
             print("Added to corpora.")
             transformed = self.vectorizer.transform(corpora_class.corpora[0])
             print("Transformed corpora.")
-            if generator:
-                batch_size = 196
-                verdict = normalize(np.sum(
-                    self.classifier.predict_generator(
-                        self.nn_batch_generator(transformed, batch_size),
-                        transformed.shape[0] // batch_size
-                    ), axis=0).reshape(1, -1))[0]
-                return list(zip(self.categories, verdict))
-            else:
-                with self.graph.as_default():
-                    predicted = self.classifier.predict(transformed.toarray())
-                verdict = normalize(np.sum(predicted, axis=0).reshape(1, -1))[0]
-                return list(zip(self.categories, verdict))
+            with self.graph.as_default():
+                predicted = self.classifier.predict(transformed.toarray())
+            verdict = normalize(np.sum(predicted, axis=0).reshape(1, -1))[0]
+            return list(zip(self.categories, verdict))
         else:
             print("Zero result.")
             return list(zip(self.categories, np.zeros(len(self.categories))))
